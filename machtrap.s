@@ -32,7 +32,7 @@ machtvec:
   # an escalation in privilege, then we need to move the stack pointer.
   csrr t1, mstatus
   li   t2, MSTATUS_MASK_MPP
-  or   t1, t1, t2
+  and  t1, t1, t2
   srli t1, t1, MSTATUS_OFFSET_MPP
   li   t2, MPP_M
   bne  t2, t1, 1f
@@ -67,8 +67,9 @@ machtvec:
   csrrw t0, mscratch, t0
 
   # allocate the trap frame containing all 32 registers (248 = 31 * 8) and the
-  # following four CSRs (32 = 4 * 8): `mepc`, `mcause`, `mtval`, `mstatus`.
-  addi sp, sp, -280
+  # following four CSRs (32 = 4 * 8): `mepc`, `mcause`, `mtval`, `mstatus`, and
+  # add 8 bytes of padding for 16-byte alignment.
+  addi sp, sp, -288
 
   # store all integer registers to the stack.
   #
@@ -136,10 +137,17 @@ machtvec:
   # state, then we would not be able to use the registers as scratch space.
   ld   x1,   248(sp)
   csrw mepc, x1
+
+  # load and write the `mstatus` CSR before we restore the register state.
+  ld   x1, 272(sp)
+  csrw mstatus, x1
   
   # load all the registers from the stack.
+  #
+  # NOTE: we do not load `x2`, because that is the stack pointer, so loading
+  # `x2` would make it so that the remaining loads occur relative to the
+  # interrupted stack pointer, not the trap stack pointer.
   ld  x1,  0(sp)
-  ld  x2,  8(sp)
   ld  x3,  16(sp)
   ld  x4,  24(sp)
   ld  x5,  32(sp)
@@ -169,6 +177,9 @@ machtvec:
   ld  x29, 224(sp)
   ld  x30, 232(sp)
   ld  x31, 240(sp)
+
+  # load the interrupted stack pointer.
+  ld x2, 8(sp)
 
   # NOTE: `mret` restores the MIE bit in `mstatus` according to the MPIE bit in
   # `mstatus`. therefore, we do not need to manually restore it.

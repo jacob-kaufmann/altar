@@ -12,6 +12,7 @@ pub mod trap {
     /// # Safety
     ///
     /// TODO
+    #[cfg(not(test))]
     #[unsafe(no_mangle)]
     pub unsafe extern "C" fn mach_traphandler(frame: *mut TrapFrame) {
         let frame = unsafe { &mut *frame };
@@ -153,10 +154,42 @@ pub mod trap {
             },
         }
     }
+
+    #[cfg(test)]
+    mod test {
+        use super::*;
+
+        #[repr(C)]
+        struct TrapFrames {
+            before: TrapFrame,
+            after: TrapFrame,
+        }
+
+        #[unsafe(no_mangle)]
+        extern "C" fn verify_mach_traphandler(frames: &TrapFrames) {
+            // equality of integer registers.
+            for i in 0..31 {
+                assert_eq!(frames.before.x[i], frames.after.x[i]);
+            }
+
+            // equality of MIE bit of `mstatus` CSR.
+            const MIE: usize = 0b1000;
+            assert_eq!(frames.before.xstatus & MIE, frames.after.xstatus & MIE);
+
+            unsafe {
+                uartprint(c"BOOT TRAP VECTOR: PASS\n".as_ptr());
+            }
+        }
+    }
 }
 
 #[panic_handler]
 fn panic(_info: &PanicInfo<'_>) -> ! {
+    use hyperion_common::uart::uartprint;
+    unsafe {
+        uartprint(c"PANIC".as_ptr());
+        core::ptr::write_volatile(0x00100000 as *mut u32, 0x13333);
+    }
     loop {
         core::hint::spin_loop();
     }
