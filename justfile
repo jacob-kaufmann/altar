@@ -47,7 +47,7 @@ build-bootloader: build-libs
           -c machtrap.s \
           -o machtrapasm.o
     # rust bootloader.
-    cargo build -p hyperion-boot --target {{targetrs}} --target-dir target
+    cargo build -p altarboot --target {{targetrs}} --target-dir target
     # bootloader.
     {{clang}} --target={{target}} \
           -march={{arch}} \
@@ -62,7 +62,7 @@ link-bootloader: build-bootloader
           -mabi={{abi}} \
           {{clanglinkopts}} \
           -Wl,-T,bootloader.ld uartasm.o machtrapasm.o bootloader.o \
-          {{librs}}/libhyperion_boot.a \
+          {{librs}}/libaltarboot.a \
           -o bootloader.elf
 
 build-kernel: build-libs
@@ -74,7 +74,7 @@ build-kernel: build-libs
           -c suptrap.s \
           -o suptrapasm.o
     # rust kernel.
-    cargo build -p hyperion-kernel --target {{targetrs}} --target-dir target
+    cargo build -p altarkernel --target {{targetrs}} --target-dir target
     # kernel.
     {{clang}} --target={{target}} \
           -march={{arch}} \
@@ -89,7 +89,7 @@ link-kernel: build-kernel
           -mabi={{abi}} \
           {{clanglinkopts}} \
           -Wl,-T,kernel.ld uartasm.o suptrapasm.o kernel.o \
-          {{librs}}/libhyperion_kernel.a \
+          {{librs}}/libaltarkernel.a \
           -o kernel.elf
 
 # debug with a port open for remote GDB/LLDB, where the program is frozen at
@@ -114,7 +114,7 @@ test-bootloader: build-libs
           -c machtrap.s \
           -o machtrapasm.o
     # rust bootloader with test configuration.
-    cargo rustc -p hyperion-boot \
+    cargo rustc -p altarboot \
           --lib \
           --target {{targetrs}} \
           --target-dir target \
@@ -131,7 +131,7 @@ test-bootloader: build-libs
           -mabi={{abi}} \
           {{clanglinkopts}} \
           -Wl,-T,bootloader.ld uartasm.o machtrapasm.o tbootloader.o \
-          {{librs}}/libhyperion_boot.a \
+          {{librs}}/libaltarboot.a \
           -o tbootloader.elf
     # load and execute.
     qemu-system-riscv64 -machine virt \
@@ -150,7 +150,7 @@ test-kernel: build-libs link-bootloader
           -c suptrap.s \
           -o suptrapasm.o
     # rust kernel with test configuration.
-    cargo rustc -p hyperion-kernel \
+    cargo rustc -p altarkernel \
           --lib \
           --target {{targetrs}} \
           --target-dir target \
@@ -168,7 +168,7 @@ test-kernel: build-libs link-bootloader
           -mabi={{abi}} \
           {{clanglinkopts}} \
           -Wl,-T,kernel.ld uartasm.o suptrapasm.o tkernel.o \
-          {{librs}}/libhyperion_kernel.a \
+          {{librs}}/libaltarkernel.a \
           -o tkernel.elf
     # load and execute.
     llvm-objcopy -O binary tkernel.elf tkernel.bin
