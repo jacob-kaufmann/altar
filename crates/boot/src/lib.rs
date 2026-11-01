@@ -168,8 +168,8 @@ pub mod trap {
         #[unsafe(no_mangle)]
         extern "C" fn verify_mach_traphandler(frames: &TrapFrames) {
             // equality of integer registers.
-            for i in 0..31 {
-                assert_eq!(frames.before.x[i], frames.after.x[i]);
+            for (before, after) in frames.before.x.iter().zip(frames.after.x.iter()) {
+                assert_eq!(before, after);
             }
 
             // equality of MIE bit of `mstatus` CSR.
