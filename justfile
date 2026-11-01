@@ -1,3 +1,5 @@
+set quiet
+
 target := "riscv64-unknown-elf"
 
 # `zicsr` extension is necessary for control and status registers.
@@ -5,6 +7,9 @@ arch := "rv64ima_zicsr"
 
 # integer calling-convention only (no hardware floating-point).
 abi := "lp64"
+
+# `clang` via nix development shell.
+clang := env_var("CLANG")
 
 # do not include the C standard library.
 # 
@@ -15,10 +20,10 @@ abi := "lp64"
 #
 # TODO: add DWARF debug information?
 # TODO: is -g flag necessary here?
-clanglinkopts := "-nostdlib -nostartfiles -fuse-ld=lld -g -Wl,--gc-sections"
+clanglinkopts := "-nostdlib -fuse-ld=lld -g -Wl,--gc-sections"
 
 # debug compilation options.
-debugopts := "-g -O0"
+debugopts := "-g"
 
 # rust compilation target and directory.
 targetrs := "riscv64imac-unknown-none-elf"
@@ -26,36 +31,33 @@ librs    := "target/" + targetrs + "/debug"
 
 build-libs:
     # UART assembly facilities.
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
-          -mcmodel=medany \
           {{debugopts}} \
           -c uart.s \
           -o uartasm.o
       
 build-bootloader: build-libs
     # machine trap assembly facilities.
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
-          -mcmodel=medany \
           {{debugopts}} \
           -c machtrap.s \
           -o machtrapasm.o
     # rust bootloader.
     cargo build -p hyperion-boot --target {{targetrs}} --target-dir target
     # bootloader.
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
-          -mcmodel=medany \
           {{debugopts}} \
           -c bootloader.s \
           -o bootloader.o
 
 link-bootloader: build-bootloader
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
           {{clanglinkopts}} \
@@ -65,26 +67,24 @@ link-bootloader: build-bootloader
 
 build-kernel: build-libs
     # kernel trap assembly facilities.
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
-          -mcmodel=medany \
           {{debugopts}} \
           -c suptrap.s \
           -o suptrapasm.o
     # rust kernel.
     cargo build -p hyperion-kernel --target {{targetrs}} --target-dir target
     # kernel.
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
-          -mcmodel=medany \
           {{debugopts}} \
           -c kernel.s \
           -o kernel.o
 
 link-kernel: build-kernel
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
           {{clanglinkopts}} \
@@ -107,10 +107,9 @@ debug gdb-port: link-bootloader link-kernel
 
 test-bootloader: build-libs
     # machine trap assembly facilities.
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
-          -mcmodel=medany \
           {{debugopts}} \
           -c machtrap.s \
           -o machtrapasm.o
@@ -121,14 +120,13 @@ test-bootloader: build-libs
           --target-dir target \
           -- --cfg test
     # test bootloader.
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
-          -mcmodel=medany \
           {{debugopts}} \
           -c tbootloader.s \
           -o tbootloader.o
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
           {{clanglinkopts}} \
@@ -145,10 +143,9 @@ test-bootloader: build-libs
   
 test-kernel: build-libs link-bootloader
     # kernel trap assembly facilities.
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
-          -mcmodel=medany \
           {{debugopts}} \
           -c suptrap.s \
           -o suptrapasm.o
@@ -159,15 +156,14 @@ test-kernel: build-libs link-bootloader
           --target-dir target \
           -- --cfg test
     # test kernel.
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
-          -mcmodel=medany \
           {{debugopts}} \
           -c tkernel.s \
           -o tkernel.o
     # link test kernel.
-    clang --target={{target}} \
+    {{clang}} --target={{target}} \
           -march={{arch}} \
           -mabi={{abi}} \
           {{clanglinkopts}} \

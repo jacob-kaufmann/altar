@@ -41,6 +41,7 @@
               pkgs.just
               rust
             ];
+            CLANG = "${llvm.clang-unwrapped}/bin/clang";
             RUSTC = "${rust}/bin/rustc";
             RUSTDOC = "${rust}/bin/rustdoc";
           };
