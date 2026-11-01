@@ -19,24 +19,19 @@
 .equ SPP_S, 0b1
 .equ SPP_U, 0b0
 
-# machine status (`mstatus`) CSR bit masks.
+# machine status (`mstatus`) CSR bit masks and offsets.
 .equ MSTATUS_MASK_SIE,  (0b01 << 1)
 .equ MSTATUS_MASK_MIE,  (0b01 << 3)
 .equ MSTATUS_MASK_SPIE, (0b01 << 5)
 .equ MSTATUS_MASK_MPIE, (0b01 << 7)
-.equ MSTATUS_MASK_MPP,  (0b11 << 11)
-
-# supervisor status (`sstatus`) CSR bit masks.
-.equ SSTATUS_MASK_SPP, (0b1 << 8)
-
-# machine status (`mstatus`) CSR bit offsets.
 .equ MSTATUS_OFFSET_MPP, 11
+.equ MSTATUS_MASK_MPP,  (0b11 << MSTATUS_OFFSET_MPP)
 
-# supervisor status (`sstatus`) CSR bit offsets.
-.equ SSTATUS_OFFSET_SPP, 11
-
-# machine status (`mstatus`) CSR bit values.
-.equ MSTATUS_MPP_SUP, (0b01 << 11)
+# supervisor status (`sstatus`) CSR bit masks and offsets.
+.equ SSTATUS_OFFSET_SPP, 8
+.equ SSTATUS_MASK_SPP, (0b01 << SSTATUS_OFFSET_SPP)
+.equ SSTATUS_OFFSET_SPIE, 5
+.equ SSTATUS_MASK_SPIE, (0b01 << SSTATUS_OFFSET_SPIE)
 
 # machine interrupt enable (`mie`) CSR bit masks.
 .equ MIE_MASK_STIE, (1 << 5)

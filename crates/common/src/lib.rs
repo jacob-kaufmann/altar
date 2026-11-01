@@ -40,7 +40,7 @@ pub mod platform {
 
 pub mod trap {
     /// trap frame.
-    #[repr(C)]
+    #[repr(C, align(16))]
     pub struct TrapFrame {
         /// integer registers.
         pub x: [usize; 31],
@@ -52,7 +52,14 @@ pub mod trap {
         pub xtval: usize,
         /// status CSR.
         pub xstatus: usize,
+        /// padding for alignment.
+        pad: [u8; 8],
     }
+
+    const _: () = {
+        assert!(core::mem::align_of::<TrapFrame>() == 16);
+        assert!(core::mem::size_of::<TrapFrame>() == 288);
+    };
 
     /// platform logic interrupt controller (PLIC) interrupt source.
     pub enum PlicInterruptSource {

@@ -164,7 +164,8 @@ bootentry:
   # (below) returns to S mode.
   li   t0, MSTATUS_MASK_MPP
   csrc mstatus, t0
-  li   t0, MSTATUS_MPP_SUP
+  li   t0, MPP_S
+  slli t0, t0, MSTATUS_OFFSET_MPP
   csrs mstatus, t0
 
   # machine exception program counter (MEPC). we set the `mepc` register to the

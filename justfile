@@ -104,7 +104,88 @@ debug gdb-port: link-bootloader link-kernel
                         -S \
                         -kernel bootloader.elf \
                         -device loader,file=kernel.bin,addr=0x80200000
-    
+
+test-bootloader: build-libs
+    # machine trap assembly facilities.
+    clang --target={{target}} \
+          -march={{arch}} \
+          -mabi={{abi}} \
+          -mcmodel=medany \
+          {{debugopts}} \
+          -c machtrap.s \
+          -o machtrapasm.o
+    # rust bootloader with test configuration.
+    cargo rustc -p hyperion-boot \
+          --lib \
+          --target {{targetrs}} \
+          --target-dir target \
+          -- --cfg test
+    # test bootloader.
+    clang --target={{target}} \
+          -march={{arch}} \
+          -mabi={{abi}} \
+          -mcmodel=medany \
+          {{debugopts}} \
+          -c tbootloader.s \
+          -o tbootloader.o
+    clang --target={{target}} \
+          -march={{arch}} \
+          -mabi={{abi}} \
+          {{clanglinkopts}} \
+          -Wl,-T,bootloader.ld uartasm.o machtrapasm.o tbootloader.o \
+          {{librs}}/libhyperion_boot.a \
+          -o tbootloader.elf
+    # load and execute.
+    qemu-system-riscv64 -machine virt \
+                        -bios none \
+                        -display none \
+                        -monitor none \
+                        -serial stdio \
+                        -kernel tbootloader.elf \
+  
+test-kernel: build-libs link-bootloader
+    # kernel trap assembly facilities.
+    clang --target={{target}} \
+          -march={{arch}} \
+          -mabi={{abi}} \
+          -mcmodel=medany \
+          {{debugopts}} \
+          -c suptrap.s \
+          -o suptrapasm.o
+    # rust kernel with test configuration.
+    cargo rustc -p hyperion-kernel \
+          --lib \
+          --target {{targetrs}} \
+          --target-dir target \
+          -- --cfg test
+    # test kernel.
+    clang --target={{target}} \
+          -march={{arch}} \
+          -mabi={{abi}} \
+          -mcmodel=medany \
+          {{debugopts}} \
+          -c tkernel.s \
+          -o tkernel.o
+    # link test kernel.
+    clang --target={{target}} \
+          -march={{arch}} \
+          -mabi={{abi}} \
+          {{clanglinkopts}} \
+          -Wl,-T,kernel.ld uartasm.o suptrapasm.o tkernel.o \
+          {{librs}}/libhyperion_kernel.a \
+          -o tkernel.elf
+    # load and execute.
+    llvm-objcopy -O binary tkernel.elf tkernel.bin
+    qemu-system-riscv64 -machine virt \
+                        -bios none \
+                        -display none \
+                        -monitor none \
+                        -serial stdio \
+                        -kernel bootloader.elf \
+                        -device loader,file=tkernel.bin,addr=0x80200000
+
+test: test-bootloader test-kernel
+
 # first, we copy the kernel ELF as a binary, so that we can load that directly
 # into memory. a production bootloader would expect a raw binary, not an ELF,
 # since there would not be anything available in the ROM to parse an ELF.

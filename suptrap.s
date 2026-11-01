@@ -31,7 +31,7 @@ suptvec:
   # an escalation in privilege, then we need to move the stack pointer.
   csrr t1, sstatus
   li   t2, SSTATUS_MASK_SPP
-  or   t1, t1, t2
+  and  t1, t1, t2
   srli t1, t1, SSTATUS_OFFSET_SPP
   li   t2, SPP_S
   bne  t2, t1, 1f
@@ -66,8 +66,9 @@ suptvec:
   csrrw t0, sscratch, t0
 
   # allocate the trap frame containing all 32 registers (248 = 31 * 8) and the
-  # following four CSRs (32 = 4 * 8): `sepc`, `scause`, `stval`, `sstatus`.
-  addi sp, sp, -280
+  # following four CSRs (32 = 4 * 8): `sepc`, `scause`, `stval`, `sstatus`, and
+  # add 8 bytes of padding for 16-byte alignment.
+  addi sp, sp, -288
 
   # store all integer registers to the stack.
   #
@@ -135,10 +136,17 @@ suptvec:
   # state, then we would not be able to use the registers as scratch space.
   ld   x1,   248(sp)
   csrw sepc, x1
+
+  # load and write the `sstatus` CSR before we restore the register state.
+  ld   x1, 272(sp)
+  csrw sstatus, x1
   
   # load all the registers from the stack.
+  #
+  # NOTE: we do not load `x2`, because that is the stack pointer, so loading
+  # `x2` would make it so that the remaining loads occur relative to the
+  # interrupted stack pointer, not the trap stack pointer.
   ld  x1,  0(sp)
-  ld  x2,  8(sp)
   ld  x3,  16(sp)
   ld  x4,  24(sp)
   ld  x5,  32(sp)
@@ -169,8 +177,8 @@ suptvec:
   ld  x30, 232(sp)
   ld  x31, 240(sp)
 
-  # load the proper (i.e. original) stack pointer from the scratch CSR.
-  csrr sp, sscratch
+  # load the interrupted stack pointer.
+  ld x2, 8(sp)
 
   # NOTE: `sret` restores the SIE bit in `sstatus` according to the SPIE bit in
   # `sstatus`. therefore, we do not need to manually restore it.
