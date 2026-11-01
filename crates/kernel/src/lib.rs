@@ -4,10 +4,10 @@
 use core::panic::PanicInfo;
 
 pub mod trap {
-    use hyperion_common::platform;
-    use hyperion_common::trap;
-    use hyperion_common::trap::{Exception, Interrupt, TrapFrame};
-    use hyperion_common::uart::{uartprint, uartprinthex, uartread};
+    use altarcore::platform;
+    use altarcore::trap;
+    use altarcore::trap::{Exception, Interrupt, TrapFrame};
+    use altarcore::uart::{uartprint, uartprinthex, uartread};
 
     /// # Safety
     ///
@@ -188,7 +188,7 @@ pub mod trap {
 
 #[panic_handler]
 fn panic(_info: &PanicInfo<'_>) -> ! {
-    use hyperion_common::uart::uartprint;
+    use altarcore::uart::uartprint;
     unsafe {
         uartprint(c"PANIC".as_ptr());
         core::ptr::write_volatile(0x00100000 as *mut u32, 0x13333);

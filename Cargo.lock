@@ -3,19 +3,19 @@
 version = 4
 
 [[package]]
-name = "hyperion-boot"
+name = "altarboot"
 version = "0.1.0"
 dependencies = [
- "hyperion-common",
+ "altarcore",
 ]
 
 [[package]]
-name = "hyperion-common"
+name = "altarcore"
 version = "0.1.0"
 
 [[package]]
-name = "hyperion-kernel"
+name = "altarkernel"
 version = "0.1.0"
 dependencies = [
- "hyperion-common",
+ "altarcore",
 ]

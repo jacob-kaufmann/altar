@@ -1,13 +1,13 @@
 [workspace]
 members = [
-  "crates/common",
+  "crates/core",
   "crates/boot",
   "crates/kernel",
 ]
 resolver = "3"
 
 [workspace.dependencies]
-hyperion-common = { path = "crates/common" }
+altarcore = { path = "crates/core" }
 
 [profile.dev]
 panic = "abort"
