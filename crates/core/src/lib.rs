@@ -7,35 +7,6 @@ pub mod platform {
     pub const MMIO_ADDR_PLIC: usize = 0x0c000000;
     /// `mtime` register.
     pub const MMIO_ADDR_MTIME: usize = 0x0200bff8;
-    /// base address of `mtimecmp` register(s).
-    const MMIO_ADDR_MTIMECMP_BASE: usize = 0x02004000;
-
-    /// privilege level.
-    pub enum Privilege {
-        Machine,
-        Supervisor,
-        User,
-    }
-
-    /// hardware thread ("hart") identifier.
-    pub struct HartId(usize);
-
-    /// platform-level interrupt controller (PLIC) context.
-    pub struct PlicContext(usize);
-
-    /// returns the PLIC context corresponding to `hart` and `privilege`.
-    pub fn plic_context(hart: HartId, privilege: Privilege) -> Option<PlicContext> {
-        match privilege {
-            Privilege::Machine => Some(PlicContext(2 * hart.0)),
-            Privilege::Supervisor => Some(PlicContext(2 * hart.0 + 1)),
-            Privilege::User => None,
-        }
-    }
-
-    /// returns the memory-mapped I/O address of `mtimecmp` for `hart`.
-    pub fn mmio_addr_mtimecmp(hart: HartId) -> usize {
-        MMIO_ADDR_MTIMECMP_BASE + (hart.0 * 8)
-    }
 }
 
 pub mod trap {
