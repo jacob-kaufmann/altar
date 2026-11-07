@@ -25,7 +25,7 @@ extern "C" fn kernelinit() {
     assert!(platform::MEMREGION.contains(addr_kernelend));
 
     // clear the bits for all available (i.e. allocate-able) pages.
-    let first = (&raw const __kernelend) as usize - platform::MEMREGION.begin;
+    let first = addr_kernelend - platform::MEMREGION.begin;
     let first = first / platform::PAGESIZE;
     for i in first..platform::PAGES {
         unsafe {

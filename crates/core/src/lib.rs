@@ -40,11 +40,6 @@ pub mod platform {
         end: 0x80000000 + MEMSIZE,
     };
 
-    /// address of the bootloader entry point.
-    pub const ADDR_BOOT_ENTRY: usize = MEMREGION.begin;
-    /// address of the kernel entry point.
-    pub const ADDR_KERNEL_ENTRY: usize = 0x80200000;
-
     /// size (in bytes) of a memory page.
     pub const PAGESIZE: usize = 4096;
 
