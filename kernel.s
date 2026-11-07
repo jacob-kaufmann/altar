@@ -80,6 +80,9 @@ kernelentry:
   or   t4, t4, t5
   sw   t4, 0(t2)
 
+  # initialize the kernel.
+  call kernelinit
+
   # enable external interrupts in the `sie` CSR.
   li   t0, SIE_MASK_SEIE
   csrs sie, t0

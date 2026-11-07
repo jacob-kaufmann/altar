@@ -9,6 +9,11 @@ SECTIONS
   . = 0x80200000;
   .text    : { KEEP(*(.text.entry)) *(.text .text.*) }
   .rodata  : { *(.rodata .rodata.*) }
-  .data  : { *(.data .data.*) }
+  .data    : { *(.data .data.*) }
   .bss     : { *(.bss .bss.*) }
+
+  /* align the end of the kernel's memory region to the page size of 4KiB. */
+  /* physical memory that we allocate pages from begins after here. */
+  . = ALIGN(4096);
+  __kernelend = .;
 }

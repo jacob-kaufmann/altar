@@ -1,6 +1,18 @@
 #![no_std]
 
+/// returns `true` if `x` has alignment `alignment` and `false` otherwise.
+///
+/// # Safety
+///
+/// panics if `alignment` is not a power of two.
+pub const fn is_aligned(x: usize, alignment: usize) -> bool {
+    assert!(alignment.is_power_of_two());
+    x & (alignment - 1) == 0
+}
+
 pub mod platform {
+    use super::*;
+
     /// universal asynchronous receiver-transmitter (UART).
     pub const MMIO_ADDR_UART: usize = 0x10000000;
     /// platform-level interrupt controller (PLIC).
@@ -9,6 +21,33 @@ pub mod platform {
     pub const MMIO_ADDR_MTIME: usize = 0x0200bff8;
     /// base address of `mtimecmp` register(s).
     const MMIO_ADDR_MTIMECMP_BASE: usize = 0x02004000;
+
+    /// size (in bytes) of physical memory.
+    pub const MEMSIZE: usize = 1usize << 27;
+
+    /// address of the beginning of physical memory (i.e. RAM).
+    pub const ADDR_MEM_BEGIN: usize = 0x80000000;
+    /// address of the end of physical memory (i.e. RAM).
+    pub const ADDR_MEM_END: usize = ADDR_MEM_BEGIN + MEMSIZE;
+
+    /// address of the bootloader entry point.
+    pub const ADDR_BOOT_ENTRY: usize = ADDR_MEM_BEGIN;
+    /// address of the kernel entry point.
+    pub const ADDR_KERNEL_ENTRY: usize = 0x80200000;
+
+    /// size (in bytes) of a memory page.
+    pub const PAGESIZE: usize = 4096;
+
+    /// number of memory pages.
+    pub const PAGES: usize = MEMSIZE / PAGESIZE;
+
+    const _: () = {
+        assert!(MEMSIZE.is_power_of_two());
+        assert!(PAGESIZE.is_power_of_two());
+        assert!(MEMSIZE == PAGESIZE * PAGES);
+        assert!(is_aligned(ADDR_MEM_BEGIN, PAGESIZE));
+        assert!(is_aligned(ADDR_MEM_END, PAGESIZE));
+    };
 
     /// privilege level.
     pub enum Privilege {
