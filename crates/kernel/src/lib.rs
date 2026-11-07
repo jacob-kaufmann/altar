@@ -225,14 +225,14 @@ pub mod vm {
     pub static mut ALLOCATOR: PageAllocator<
         { platform::PAGES },
         { platform::PAGES * usize::BITS as usize },
-    > = PageAllocator::new();
+    > = PageAllocator::full();
 
     pub struct PageAllocator<const N: usize, const M: usize> {
         pages: BitSet<N, M>,
     }
 
     impl<const N: usize, const M: usize> PageAllocator<N, M> {
-        pub const fn new() -> Self {
+        pub const fn full() -> Self {
             let pages = BitSet::full();
             Self { pages }
         }
@@ -312,8 +312,8 @@ pub mod vm {
         /// bits are set.
         pub fn find_first_clear(&self) -> Option<usize> {
             let mut tmp: usize;
-            for i in 0..Self::LAST {
-                tmp = !self.bits[i];
+            for (i, bit) in self.bits.iter().enumerate().take(Self::LAST) {
+                tmp = !bit;
                 if tmp != 0 {
                     let j = i * usize::BITS as usize;
                     return Some(j + tmp.trailing_zeros() as usize);
