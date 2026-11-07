@@ -22,10 +22,10 @@ extern "C" fn kernelinit() {
     // address at compile time.
     let addr_kernelend = (&raw const __kernelend) as usize;
     assert!(is_aligned(addr_kernelend, platform::PAGESIZE));
-    assert!(addr_kernelend >= platform::ADDR_MEM_BEGIN && addr_kernelend <= platform::ADDR_MEM_END);
+    assert!(platform::MEMREGION.contains(addr_kernelend));
 
     // clear the bits for all available (i.e. allocate-able) pages.
-    let first = (&raw const __kernelend) as usize - platform::ADDR_MEM_BEGIN;
+    let first = (&raw const __kernelend) as usize - platform::MEMREGION.begin;
     let first = first / platform::PAGESIZE;
     for i in first..platform::PAGES {
         unsafe {
@@ -222,11 +222,10 @@ pub mod vm {
     use altarcore::platform;
 
     /// the virtual memory (VM) page allocator.
-    ///
-    /// we assume that the physical memory is 128MiB (2 ** 27), and that the
-    /// page/frame size is 4KiB (2 ** 12), so there are 2 ** 15 pages.
-    pub static mut ALLOCATOR: PageAllocator<{ 1 << 15 }, { (1 << 15) * usize::BITS as usize }> =
-        PageAllocator::new();
+    pub static mut ALLOCATOR: PageAllocator<
+        { platform::PAGES },
+        { platform::PAGES * usize::BITS as usize },
+    > = PageAllocator::new();
 
     pub struct PageAllocator<const N: usize, const M: usize> {
         pages: BitSet<N, M>,
@@ -243,7 +242,7 @@ pub mod vm {
         pub fn alloc(&mut self) -> Option<*const u8> {
             let page = self.pages.find_first_clear()?;
             self.pages.set(page);
-            let addr = platform::ADDR_MEM_BEGIN + page * platform::PAGESIZE;
+            let addr = platform::MEMREGION.begin + page * platform::PAGESIZE;
             zero(addr as *mut u8, platform::PAGESIZE);
             Some(addr as *const u8)
         }

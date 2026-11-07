@@ -13,6 +13,18 @@ pub const fn is_aligned(x: usize, alignment: usize) -> bool {
 pub mod platform {
     use super::*;
 
+    #[derive(Clone, Copy)]
+    pub struct HalfOpenInterval {
+        pub begin: usize,
+        pub end: usize,
+    }
+
+    impl HalfOpenInterval {
+        pub const fn contains(self, x: usize) -> bool {
+            x >= self.begin && x < self.end
+        }
+    }
+
     /// universal asynchronous receiver-transmitter (UART).
     pub const MMIO_ADDR_UART: usize = 0x10000000;
     /// platform-level interrupt controller (PLIC).
@@ -23,13 +35,13 @@ pub mod platform {
     /// size (in bytes) of physical memory.
     pub const MEMSIZE: usize = 1usize << 27;
 
-    /// address of the beginning of physical memory (i.e. RAM).
-    pub const ADDR_MEM_BEGIN: usize = 0x80000000;
-    /// address of the end of physical memory (i.e. RAM).
-    pub const ADDR_MEM_END: usize = ADDR_MEM_BEGIN + MEMSIZE;
+    pub const MEMREGION: HalfOpenInterval = HalfOpenInterval {
+        begin: 0x80000000,
+        end: 0x80000000 + MEMSIZE,
+    };
 
     /// address of the bootloader entry point.
-    pub const ADDR_BOOT_ENTRY: usize = ADDR_MEM_BEGIN;
+    pub const ADDR_BOOT_ENTRY: usize = MEMREGION.begin;
     /// address of the kernel entry point.
     pub const ADDR_KERNEL_ENTRY: usize = 0x80200000;
 
@@ -43,8 +55,8 @@ pub mod platform {
         assert!(MEMSIZE.is_power_of_two());
         assert!(PAGESIZE.is_power_of_two());
         assert!(MEMSIZE == PAGESIZE * PAGES);
-        assert!(is_aligned(ADDR_MEM_BEGIN, PAGESIZE));
-        assert!(is_aligned(ADDR_MEM_END, PAGESIZE));
+        assert!(is_aligned(MEMREGION.begin, PAGESIZE));
+        assert!(is_aligned(MEMREGION.end, PAGESIZE));
     };
 }
 
