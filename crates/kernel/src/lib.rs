@@ -3,6 +3,38 @@
 
 use core::panic::PanicInfo;
 
+unsafe extern "C" {
+    /// the first byte at the linker-defined symbol `__kernelend`.
+    ///
+    /// NOTE: to retrieve the address corresponding to `__kernelend`, we must
+    /// obtain a pointer to `__kernelend`.
+    static __kernelend: u8;
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn kernelinit() {
+    use altarcore::is_aligned;
+    use altarcore::platform;
+    use vm;
+
+    // NOTE: we cannot perform these assertions at compile time, because
+    // `__kernelend` is a linker-defined symbol, and thus does not have an
+    // address at compile time.
+    let addr_kernelend = (&raw const __kernelend) as usize;
+    assert!(is_aligned(addr_kernelend, platform::PAGESIZE));
+    assert!(platform::MEMREGION.contains(addr_kernelend));
+
+    // clear the bits for all available (i.e. allocate-able) pages.
+    let first = (&raw const __kernelend) as usize - platform::MEMREGION.begin;
+    let first = first / platform::PAGESIZE;
+    for i in first..platform::PAGES {
+        unsafe {
+            #[allow(static_mut_refs)]
+            vm::ALLOCATOR.free(i);
+        }
+    }
+}
+
 pub mod trap {
     use altarcore::platform;
     use altarcore::trap;
@@ -182,6 +214,112 @@ pub mod trap {
             unsafe {
                 uartprint(c"KERNEL TRAP VECTOR: PASS\n".as_ptr());
             }
+        }
+    }
+}
+
+pub mod vm {
+    use altarcore::platform;
+
+    /// the virtual memory (VM) page allocator.
+    pub static mut ALLOCATOR: PageAllocator<
+        { platform::PAGES },
+        { platform::PAGES * usize::BITS as usize },
+    > = PageAllocator::new();
+
+    pub struct PageAllocator<const N: usize, const M: usize> {
+        pages: BitSet<N, M>,
+    }
+
+    impl<const N: usize, const M: usize> PageAllocator<N, M> {
+        pub const fn new() -> Self {
+            let pages = BitSet::full();
+            Self { pages }
+        }
+
+        /// allocates a page, returning a pointer to the physical address of the
+        /// page on success, and `None` otherwise.
+        pub fn alloc(&mut self) -> Option<*const u8> {
+            let page = self.pages.find_first_clear()?;
+            self.pages.set(page);
+            let addr = platform::MEMREGION.begin + page * platform::PAGESIZE;
+            zero(addr as *mut u8, platform::PAGESIZE);
+            Some(addr as *const u8)
+        }
+
+        pub fn free(&mut self, page: usize) {
+            self.pages.clear(page);
+        }
+    }
+
+    fn zero(addr: *mut u8, len: usize) {
+        // TODO: assert alignment?
+        unsafe {
+            core::ptr::write_bytes(addr, 0, len);
+        }
+    }
+
+    #[repr(C)]
+    struct BitSet<const N: usize, const M: usize> {
+        bits: [usize; M],
+    }
+
+    impl<const N: usize, const M: usize> BitSet<N, M> {
+        /// the last element of the internal array that contains a valid
+        /// bit position. for optimal memory footprint, we should have `LAST`
+        /// equal to `M`.
+        const LAST: usize = N.div_ceil(usize::BITS as usize);
+
+        /// returns a bit set whose bits are all set.
+        ///
+        /// # Safety
+        ///
+        /// panics if `M` times `usize::BITS` is less than `N`.
+        pub const fn full() -> Self {
+            assert!(M * (usize::BITS as usize) >= N);
+            Self {
+                bits: [usize::MAX; M],
+            }
+        }
+
+        /// clears bit `i`.
+        ///
+        /// # Safety
+        ///
+        /// panics if `i` is greater than or equal to `N`.
+        pub fn clear(&mut self, i: usize) {
+            assert!(i < N);
+            let elt = i / usize::BITS as usize;
+            let bit = i % usize::BITS as usize;
+            let mask = !(1 << bit);
+            self.bits[elt] &= mask;
+        }
+
+        /// sets bit `i`.
+        ///
+        /// # Safety
+        ///
+        /// panics if `i` is greater than or equal to `N`.
+        pub fn set(&mut self, i: usize) {
+            assert!(i < N);
+            let elt = i / usize::BITS as usize;
+            let bit = i % usize::BITS as usize;
+            let mask = 1 << bit;
+            self.bits[elt] |= mask;
+        }
+
+        /// returns the bit index of the first clear bit. returns `None` if all
+        /// bits are set.
+        pub fn find_first_clear(&self) -> Option<usize> {
+            let mut tmp: usize;
+            for i in 0..Self::LAST {
+                tmp = !self.bits[i];
+                if tmp != 0 {
+                    let j = i * usize::BITS as usize;
+                    return Some(j + tmp.trailing_zeros() as usize);
+                }
+            }
+            None
         }
     }
 }

@@ -8,6 +8,8 @@ arch := "rv64ima_zicsr"
 # integer calling-convention only (no hardware floating-point).
 abi := "lp64"
 
+mem := "128M"
+
 # `clang` via nix development shell.
 clang := env_var("CLANG")
 
@@ -97,6 +99,7 @@ link-kernel: build-kernel
 debug gdb-port: link-bootloader link-kernel
     llvm-objcopy -O binary kernel.elf kernel.bin
     qemu-system-riscv64 -machine virt \
+                        -m {{mem}} \
                         -bios none \
                         -display none \
                         -serial stdio \
@@ -173,6 +176,7 @@ test-kernel: build-libs link-bootloader
     # load and execute.
     llvm-objcopy -O binary tkernel.elf tkernel.bin
     qemu-system-riscv64 -machine virt \
+                        -m {{mem}} \
                         -bios none \
                         -display none \
                         -monitor none \
@@ -188,6 +192,7 @@ test: test-bootloader test-kernel
 run: link-bootloader link-kernel
     llvm-objcopy -O binary kernel.elf kernel.bin
     qemu-system-riscv64 -machine virt \
+                        -m {{mem}} \
                         -bios none \
                         -display none \
                         -monitor none \

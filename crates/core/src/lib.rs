@@ -1,12 +1,63 @@
 #![no_std]
 
+/// returns `true` if `x` has alignment `alignment` and `false` otherwise.
+///
+/// # Safety
+///
+/// panics if `alignment` is not a power of two.
+pub const fn is_aligned(x: usize, alignment: usize) -> bool {
+    assert!(alignment.is_power_of_two());
+    x & (alignment - 1) == 0
+}
+
 pub mod platform {
+    use super::*;
+
+    #[derive(Clone, Copy)]
+    pub struct HalfOpenInterval {
+        pub begin: usize,
+        pub end: usize,
+    }
+
+    impl HalfOpenInterval {
+        pub const fn contains(self, x: usize) -> bool {
+            x >= self.begin && x < self.end
+        }
+    }
+
     /// universal asynchronous receiver-transmitter (UART).
     pub const MMIO_ADDR_UART: usize = 0x10000000;
     /// platform-level interrupt controller (PLIC).
     pub const MMIO_ADDR_PLIC: usize = 0x0c000000;
     /// `mtime` register.
     pub const MMIO_ADDR_MTIME: usize = 0x0200bff8;
+
+    /// size (in bytes) of physical memory.
+    pub const MEMSIZE: usize = 1usize << 27;
+
+    pub const MEMREGION: HalfOpenInterval = HalfOpenInterval {
+        begin: 0x80000000,
+        end: 0x80000000 + MEMSIZE,
+    };
+
+    /// address of the bootloader entry point.
+    pub const ADDR_BOOT_ENTRY: usize = MEMREGION.begin;
+    /// address of the kernel entry point.
+    pub const ADDR_KERNEL_ENTRY: usize = 0x80200000;
+
+    /// size (in bytes) of a memory page.
+    pub const PAGESIZE: usize = 4096;
+
+    /// number of memory pages.
+    pub const PAGES: usize = MEMSIZE / PAGESIZE;
+
+    const _: () = {
+        assert!(MEMSIZE.is_power_of_two());
+        assert!(PAGESIZE.is_power_of_two());
+        assert!(MEMSIZE == PAGESIZE * PAGES);
+        assert!(is_aligned(MEMREGION.begin, PAGESIZE));
+        assert!(is_aligned(MEMREGION.end, PAGESIZE));
+    };
 }
 
 pub mod trap {
