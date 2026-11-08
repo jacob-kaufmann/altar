@@ -13,13 +13,17 @@ pub const fn is_aligned(x: usize, alignment: usize) -> bool {
 pub mod platform {
     use super::*;
 
+    /// a half-open interval whose beginning is closed and end is open.
     #[derive(Clone, Copy)]
     pub struct HalfOpenInterval {
+        /// beginning of the interval.
         pub begin: usize,
+        /// end of the interval.
         pub end: usize,
     }
 
     impl HalfOpenInterval {
+        /// returns `true` if `x` is in `self`.
         pub const fn contains(self, x: usize) -> bool {
             x >= self.begin && x < self.end
         }
@@ -35,6 +39,7 @@ pub mod platform {
     /// size (in bytes) of physical memory.
     pub const MEMSIZE: usize = 1usize << 27;
 
+    /// physical memory region (i.e. RAM).
     pub const MEMREGION: HalfOpenInterval = HalfOpenInterval {
         begin: 0x80000000,
         end: 0x80000000 + MEMSIZE,

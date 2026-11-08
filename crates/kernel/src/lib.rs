@@ -11,6 +11,7 @@ unsafe extern "C" {
     static __kernelend: u8;
 }
 
+/// initializes kernel data structures.
 #[unsafe(no_mangle)]
 extern "C" fn kernelinit() {
     use altarcore::is_aligned;
@@ -227,13 +228,16 @@ pub mod vm {
         { platform::PAGES * usize::BITS as usize },
     > = PageAllocator::full();
 
+    /// a physical page memory allocator.
     pub struct PageAllocator<const N: usize, const M: usize> {
-        pages: BitSet<N, M>,
+        /// bit-array that denotes which pages are allocated.
+        pages: BitArray<N, M>,
     }
 
     impl<const N: usize, const M: usize> PageAllocator<N, M> {
+        /// returns a page allocator whose pages are all allocated.
         pub const fn full() -> Self {
-            let pages = BitSet::full();
+            let pages = BitArray::full();
             Self { pages }
         }
 
@@ -247,11 +251,17 @@ pub mod vm {
             Some(addr as *const u8)
         }
 
+        /// frees the memory page `page`.
+        ///
+        /// # Safety
+        ///
+        /// panics if `page` is greater than or equal to `N`.
         pub fn free(&mut self, page: usize) {
             self.pages.clear(page);
         }
     }
 
+    /// zeros the memory region `[addr, addr + len)`.
     fn zero(addr: *mut u8, len: usize) {
         // TODO: assert alignment?
         unsafe {
@@ -259,12 +269,13 @@ pub mod vm {
         }
     }
 
+    /// a fixed-length bit-array.
     #[repr(C)]
-    struct BitSet<const N: usize, const M: usize> {
+    struct BitArray<const N: usize, const M: usize> {
         bits: [usize; M],
     }
 
-    impl<const N: usize, const M: usize> BitSet<N, M> {
+    impl<const N: usize, const M: usize> BitArray<N, M> {
         /// the last element of the internal array that contains a valid
         /// bit position. for optimal memory footprint, we should have `LAST`
         /// equal to `M`.
