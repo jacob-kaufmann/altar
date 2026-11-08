@@ -221,11 +221,12 @@ pub mod uart {
         let mut is_data_ready: u8 = unsafe { ptr::read_volatile(lsr_ptr) };
         is_data_ready &= 0b00000001;
 
-        // while data is available and there is remaining capacity, read a character
-        // from the UART device receive buffer into the given buffer.
+        // while data is available and there is remaining capacity, read a
+        // character from the UART device receive buffer into the given buffer.
         let mut i = 0;
         let mut rbr_ptr = platform::MMIO_ADDR_UART as *mut u8;
-        rbr_ptr = rbr_ptr.wrapping_add(UartRegister::offset(UartRegister::RbrThrDll));
+        rbr_ptr =
+            rbr_ptr.wrapping_add(UartRegister::offset(UartRegister::RbrThrDll));
         let mut tmp: u8;
         while is_data_ready != 0 && i < cap {
             tmp = unsafe { ptr::read_volatile(rbr_ptr) };
