@@ -29,8 +29,8 @@ pub mod trap {
         use core::ffi;
         use core::mem;
 
-        // the highest bit of `xcause` is a flag that is set if the cause of the trap
-        // was an interrupt.
+        // the highest bit of `xcause` is a flag that is set if the cause of the
+        // trap was an interrupt.
         let is_interrupt = frame.xcause >> (usize::BITS - 1);
         let cause: usize = (frame.xcause << 1) >> 1;
 
@@ -57,8 +57,8 @@ pub mod trap {
 
         // TODO: check for fatal or non-fatal?
         //
-        // TODO: profile against lookup table (i.e. LUT) and against vectored trap
-        // mode as opposed to direct trap mode in `mtvec`.
+        // TODO: profile against lookup table (i.e. LUT) and against vectored
+        // trap mode as opposed to direct trap mode in `mtvec`.
         if is_interrupt > 0 {
             let cause = Interrupt::try_from(cause).expect("invalid interrupt");
             int_handler(frame, cause);
@@ -84,14 +84,19 @@ pub mod trap {
     /// (synchronous) exception handler.
     fn exception_handler(frame: &mut TrapFrame, cause: Exception) {
         match cause {
-            Exception::EnvCallFromSupervisor => exception_handler_ecall_sup(frame),
-            Exception::IllegalInstruction | Exception::Breakpoint | Exception::EnvCallFromUser => {}
+            Exception::EnvCallFromSupervisor => {
+                exception_handler_ecall_sup(frame)
+            }
+            Exception::IllegalInstruction
+            | Exception::Breakpoint
+            | Exception::EnvCallFromUser => {}
         }
 
-        // increment the program counter to the next instruction. RISC-V instructions
-        // are fixed-width instructions.
+        // increment the program counter to the next instruction. RISC-V
+        // instructions are fixed-width instructions.
         //
-        // TODO: is there a situation where we do not want to increment the PC here?
+        // TODO: is there a situation where we do not want to increment the PC
+        // here?
         frame.xepc += 4;
     }
 
@@ -104,16 +109,16 @@ pub mod trap {
 
     /// external interrupt handler.
     //
-    /// to service an interrupt, we transmit an interrupt claim to the PLIC in the
-    /// form of a memory-mapped I/O register read. then, the PLIC atomically
-    /// determines the ID of the highest priority pending interrupt for the interrupt
-    /// target and clears the corresponding interrupt sources's interrupt pending
-    /// bit. the PLIC returns the ID if there was a pending interrupt and zero
-    /// otherwise. since there might be other (lower priority) pending interrupts,
-    /// the PLIC external interrupt pending bit may not be clear after a claim. after
-    /// we service the interrupt, we transmit an interrupt completion to the PLIC in
-    /// the form of a memory-mapped I/O register write with the same ID returned by
-    /// the PLIC.
+    /// to service an interrupt, we transmit an interrupt claim to the PLIC in
+    /// the form of a memory-mapped I/O register read. then, the PLIC atomically
+    /// determines the ID of the highest priority pending interrupt for the
+    /// interrupt target and clears the corresponding interrupt sources's
+    /// interrupt pending bit. the PLIC returns the ID if there was a pending
+    /// interrupt and zero otherwise. since there might be other (lower
+    /// priority) pending interrupts, the PLIC external interrupt pending bit
+    /// may not be clear after a claim. after we service the interrupt, we
+    /// transmit an interrupt completion to the PLIC in the form of a
+    /// memory-mapped I/O register write with the same ID returned by the PLIC.
     fn int_handler_ext(_frame: &TrapFrame) {
         use core::ffi;
         use core::ptr;
@@ -121,14 +126,15 @@ pub mod trap {
 
         let ptr = (platform::MMIO_ADDR_PLIC + 0x201004) as *mut u32;
         let id: u32 = unsafe { ptr::read_volatile(ptr) };
-        let src = PlicInterruptSource::try_from(id as usize).expect("invalid interrupt source");
+        let src = PlicInterruptSource::try_from(id as usize)
+            .expect("invalid interrupt source");
 
         match src {
             PlicInterruptSource::Uart => {
                 // the interrupt source is the UART device.
                 //
-                // TODO: check that the interrupt corresponds to received data ready or a
-                // recevied data timeout (if in FIFO mode).
+                // TODO: check that the interrupt corresponds to received data
+                // ready or a recevied data timeout (if in FIFO mode).
                 let mut buf: [u8; 64] = [0; 64];
                 let n = uartread(buf.as_mut_slice(), 64);
                 unsafe {
@@ -168,7 +174,9 @@ pub mod trap {
         #[unsafe(no_mangle)]
         extern "C" fn verify_mach_traphandler(frames: &TrapFrames) {
             // equality of integer registers.
-            for (before, after) in frames.before.x.iter().zip(frames.after.x.iter()) {
+            for (before, after) in
+                frames.before.x.iter().zip(frames.after.x.iter())
+            {
                 assert_eq!(before, after);
             }
 
