@@ -38,6 +38,7 @@
               llvm.clang-unwrapped
               llvm.lld
               llvm.llvm
+              pkgs.qemu
               pkgs.just
               rust
             ];
