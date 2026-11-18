@@ -225,6 +225,8 @@ pub mod trap {
 }
 
 pub mod vm {
+    use core::ptr::NonNull;
+
     use altarcore::platform;
 
     /// the virtual memory (VM) page allocator.
@@ -232,6 +234,9 @@ pub mod vm {
         { platform::PAGES },
         { platform::PAGES * usize::BITS as usize },
     > = PageAllocator::full();
+
+    /// a memory page.
+    pub type Page = [u8; platform::PAGESIZE];
 
     /// a physical page memory allocator.
     pub struct PageAllocator<const N: usize, const M: usize> {
@@ -248,12 +253,16 @@ pub mod vm {
 
         /// allocates a page, returning a pointer to the physical address of the
         /// page on success, and `None` otherwise.
-        pub fn alloc(&mut self) -> Option<*const u8> {
+        pub fn alloc(&mut self) -> Option<NonNull<Page>> {
             let page = self.pages.find_first_clear()?;
             self.pages.set(page);
+
             let addr = platform::MEMREGION.begin + page * platform::PAGESIZE;
-            zero(addr as *mut u8, platform::PAGESIZE);
-            Some(addr as *const u8)
+            let ptr = NonNull::new(addr as *mut u8).expect("non-null address");
+            zero(ptr.as_ptr(), platform::PAGESIZE);
+
+            let ptr = ptr.cast::<Page>();
+            Some(ptr)
         }
 
         /// frees the memory page `page`.
